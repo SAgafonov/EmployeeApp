@@ -283,8 +283,6 @@ class SearchEmployeeApp(FormElements):
         self.root_search_window = search_window
         self.root_search_window.title("Поиск")
 
-        # self.search_frame = None  # Форма поиска
-
         self.risk_entries = []  # Список для хранения текстовых полей для факторов риска
 
         self.employees = []
@@ -294,9 +292,6 @@ class SearchEmployeeApp(FormElements):
         self.create_search_widgets()
 
     def create_search_widgets(self):
-        # if self.search_frame:
-        #     self.search_frame.destroy()
-
         self.search_frame = tk.Frame(self.root_search_window)
         self.search_frame.pack(side="left", padx=20, pady=20)
 
@@ -348,101 +343,11 @@ class SearchEmployeeApp(FormElements):
         self.actual_date_cal.set_date(self.current_date)
         self.actual_date_cal.delete(0, tk.END)  # очищаем строку
 
-        # # Поля для сотрудника
-        # tk.Label(self.search_frame, text="Фамилия:").pack(anchor="w")
-        # self.last_name_entry = tk.Entry(self.search_frame, textvariable=self.last_name_var)
-        # self.last_name_entry.pack(fill="x", anchor="w")
-
-        # tk.Label(self.search_frame, text="Имя:").pack(anchor="w")
-        # self.first_name_entry = tk.Entry(self.search_frame, textvariable=self.first_name_var)
-        # self.first_name_entry.pack(fill="x", anchor="w")
-        #
-        # tk.Label(self.search_frame, text="Отчество:").pack(anchor="w")
-        # self.middle_name_entry = tk.Entry(self.search_frame, textvariable=self.middle_name_var)
-        # self.middle_name_entry.pack(fill="x", anchor="w")
-        #
-        # tk.Label(self.search_frame, text="Дата рождения:").pack(anchor="w")
-        # self.birth_date_cal = DateEntry(self.search_frame, date_pattern="dd.MM.yyyy", textvariable=self.birth_date_var)
-        # self.birth_date_cal.pack(fill="x", anchor="w")
-        # self.birth_date_cal.delete(0, tk.END) # очищаем строку
-        #
-        # tk.Label(self.search_frame, text="Должность:").pack(anchor="w")
-        # self.position_entry = tk.Entry(self.search_frame, textvariable=self.position_var)
-        # self.position_entry.pack(fill="x", anchor="w")
-        #
-        # self.risk_search_label = tk.Label(self.search_frame, text="Факторы риска (через запятую):")
-        # self.risk_search_label.pack(padx=10, pady=5, anchor="w")
-        # self.risk_search_entry = tk.Entry(self.search_frame)
-        # self.risk_search_entry.pack(fill="x", padx=10, pady=5)
-        #
-        # tk.Label(self.search_frame, text="Планируемая дата:").pack()
-        # self.planned_date_cal = DateEntry(self.search_frame, date_pattern="dd.MM.yyyy", textvariable=self.planned_date_var)
-        # self.planned_date_cal.pack()
-        # self.planned_date_cal.set_date(self.current_date)
-        # self.planned_date_cal.delete(0, tk.END) # очищаем строку
-        #
-        # tk.Label(self.search_frame, text="Фактическая дата:").pack()
-        # self.actual_date_cal = DateEntry(self.search_frame, date_pattern="dd.MM.yyyy", textvariable=self.actual_date_var)
-        # self.actual_date_cal.pack()
-        # self.actual_date_cal.set_date(self.current_date)
-        # self.actual_date_cal.delete(0, tk.END) # очищаем строку
-
-        # # Рамка для факторов риска и скроллбара
-        # self.risk_frame = tk.Frame(self.root_search_window)
-        # self.risk_frame.pack(side="right", padx=10, pady=10, fill="both", expand=True)
-        #
-        # # Канвас для прокрутки
-        # self.risk_canvas = tk.Canvas(self.risk_frame)
-        # self.risk_canvas.pack(side="top", fill="both", expand=True)
-        #
-        # # Скроллбар для канваса будет находиться внутри risk_canvas, иначе он почти не виден
-        # self.risk_scrollbar = tk.Scrollbar(self.risk_canvas, command=self.risk_canvas.yview)
-        # self.risk_scrollbar.pack(side="right", fill="y")
-        #
-        # self.risk_canvas.config(yscrollcommand=self.risk_scrollbar.set)
-        # self.risk_canvas.bind("<Configure>",
-        #                       lambda e: self.risk_canvas.configure(scrollregion=self.risk_canvas.bbox("all")))
-        #
-        # # Рамка для элементов рисков
-        # self.risk_entries_frame = tk.Frame(self.risk_canvas)
-        # self.risk_canvas.create_window((0, 0), window=self.risk_entries_frame, anchor="nw")
-
-        # # Кнопки "Добавить риск", "Поиск" и "Отменить"
-        # button_frame = tk.Frame(self.search_frame)
-        # button_frame.pack(side="bottom", pady=10)
-        # tk.Button(button_frame, text="Поиск", command=self.perform_search, bg="green").pack(side="left", padx=5)
-        # tk.Button(button_frame, text="Отменить", command=self.cancel, bg="red").pack(side="right", padx=5)
-        # tk.Button(button_frame, text="Очистить всё", command=self.clear_all).pack(side="left", padx=20, pady=5)
         button_frame = tk.Frame(self.search_frame)
         button_frame.grid(row=9, columnspan=4, pady=10)
         tk.Button(button_frame, text="Поиск", command=self.perform_search, bg="green").pack(side="left", padx=5)
         tk.Button(button_frame, text="Отменить", command=self.cancel, bg="red").pack(side="right", padx=5)
         tk.Button(button_frame, text="Очистить всё", command=self.clear_all).pack(side="left", padx=20, pady=5)
-
-    # def add_risk_entry(self):
-    #     tk.Label(self.risk_entries_frame, text="Фактор риска:").pack()
-    #     risk_entry = tk.Entry(self.risk_entries_frame)
-    #     risk_entry.pack()
-    #     self.risk_entries.append((risk_entry, None, None))  # (Текстовое поле, Planned Date, Actual Date)
-    #
-    #     tk.Label(self.risk_entries_frame, text="Планируемая дата:").pack()
-    #     planned_date_cal = DateEntry(self.risk_entries_frame, date_pattern="dd.MM.yyyy", textvariable=tk.StringVar())
-    #     planned_date_cal.pack()
-    #     planned_date_cal.set_date(self.current_date)
-    #     self.risk_entries[-1] = (risk_entry, planned_date_cal, self.risk_entries[-1][2])
-    #
-    #     tk.Label(self.risk_entries_frame, text="Фактическая дата:").pack()
-    #     actual_date_cal = DateEntry(self.risk_entries_frame, date_pattern="dd.MM.yyyy", textvariable=tk.StringVar())
-    #     actual_date_cal.pack()
-    #     actual_date_cal.set_date(self.current_date)
-    #     self.risk_entries[-1] = (risk_entry, planned_date_cal, actual_date_cal)
-
-    # def clear_risks(self):
-    #     self.risk_entries_frame.destroy()
-    #     self.risk_entries_frame = tk.Frame(self.risk_canvas)
-    #     self.risk_canvas.create_window((0, 0), window=self.risk_entries_frame, anchor="nw")
-    #
-    #     self.risk_entries = []
 
     def clear_all(self):
         self.last_name_entry.delete(0, tk.END)
