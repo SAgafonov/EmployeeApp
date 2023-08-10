@@ -59,7 +59,7 @@ class MainMenu:
         AddEmployeeApp(add_user_window)
 
     def open_search_window(self):
-        search_window = tk.Toplevel(root)
+        search_window = tk.Toplevel(self.root)
         search_window.title("Поиск")
         search_window.geometry(f"{self.new_width}x{self.new_height}")  # Используем новые размеры
         SearchEmployeeApp(self.root, search_window)
@@ -67,7 +67,7 @@ class MainMenu:
 
     def open_update_window(self):
         update_window = tk.Toplevel(root)
-        update_window.title("Обновить")
+        update_window.title("Редактирование пользователя")
         update_window.geometry(f"{self.new_width}x{self.new_height}")
 
     def exit_app(self):

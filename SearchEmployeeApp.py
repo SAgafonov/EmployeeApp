@@ -1,8 +1,12 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
+from tkinter.scrolledtext import ScrolledText
 import sqlite3
 from tkcalendar import DateEntry
 from FormElements import FormElements
+from PIL import Image, ImageTk
+from ScrollableFrame import ScrollableFrame
+from AddEmployeeApp import AddEmployeeApp
 
 def show_all_employees():
     conn = sqlite3.connect("employee.db")
@@ -43,6 +47,8 @@ def show_all_employees():
 class SearchEmployeeApp(FormElements):
     def __init__(self, main_frame, search_window):
         super().__init__()
+        self.edit_icon = "icons/edit_icon.png"
+        self.delete_icon = "icons/delete_icon.png"
         self.main_frame = main_frame
         self.root_search_window = search_window
         self.root_search_window.title("Поиск")
@@ -50,6 +56,9 @@ class SearchEmployeeApp(FormElements):
         self.risk_entries = []  # Список для хранения текстовых полей для факторов риска
 
         self.employees = []
+
+        self.select_query = None
+        self.search_params = None
 
         show_all_employees()
 
@@ -128,6 +137,24 @@ class SearchEmployeeApp(FormElements):
             self.root_search_window.destroy()
 
     def perform_search(self):
+        # Если есть сохраненные параметры для поиска, то пользуемся имя.
+        # Нужно для корректной перерисовки результатов поиска после удаления/редактирования пользователя.
+        if self.select_query and self.search_params:
+            print(self.select_query)
+            print(self.search_params)
+            conn = sqlite3.connect("employee.db")
+            cursor = conn.cursor()
+
+            cursor.execute(self.select_query, self.search_params)
+            rows = cursor.fetchall()
+
+            conn.close()
+
+            search_results = self.organize_search_results(rows)
+
+            self.show_results(search_results)
+            return
+
         last_name = self.last_name_var.get()
         first_name = self.first_name_var.get()
         middle_name = self.middle_name_var.get()
@@ -137,8 +164,8 @@ class SearchEmployeeApp(FormElements):
         actual_date = self.actual_date_var.get()
         risk_factors = [x.strip() for x in self.risk_search_entry.get("1.0", "end-1c").split(",")]
 
-        print(last_name, first_name, middle_name, birth_date, position, risk_factors, planned_date, actual_date)
-        print(not any([last_name, first_name, middle_name, birth_date, position, risk_factors, planned_date, actual_date]) or risk_factors == [''])
+        # print(last_name, first_name, middle_name, birth_date, position, risk_factors, planned_date, actual_date)
+        # print(not any([last_name, first_name, middle_name, birth_date, position, risk_factors, planned_date, actual_date]) or risk_factors == [''])
         if not any([last_name, first_name, middle_name, birth_date, position, planned_date, actual_date]) and risk_factors == ['']:
             messagebox.showerror("Ошибка", "Хотя бы одно поле должно быть заполнено", parent=self.root_search_window)
             return
@@ -146,8 +173,8 @@ class SearchEmployeeApp(FormElements):
         conn = sqlite3.connect("employee.db")
         cursor = conn.cursor()
 
-        query = '''
-                SELECT e.last_name, e.first_name, e.middle_name, e.birth_date, e.position, 
+        self.select_query = '''
+                SELECT e.id, e.last_name, e.first_name, e.middle_name, e.birth_date, e.position, 
                     r.risk_name, r.planned_date, r.actual_date
                 FROM employee e
                 LEFT JOIN risk_factor r ON e.id = r.employee_id
@@ -160,14 +187,14 @@ class SearchEmployeeApp(FormElements):
                   (r.actual_date = ? OR ? = '') AND
                   (r.risk_name IN ({seq}) OR ? = '')
         '''.format(seq=','.join(['?']*len(risk_factors)))
-        search_params = ['%' + last_name + '%', last_name,
+        self.search_params = ['%' + last_name + '%', last_name,
                          '%' + first_name + '%', first_name,
                          '%' + middle_name + '%', middle_name,
                          birth_date, birth_date,
                          '%' + position + '%', position,
                          planned_date, planned_date,
                          actual_date, actual_date] + risk_factors + [','.join(risk_factors)]
-        cursor.execute(query, search_params)
+        cursor.execute(self.select_query, self.search_params)
         rows = cursor.fetchall()
 
         conn.close()
@@ -180,19 +207,20 @@ class SearchEmployeeApp(FormElements):
         search_results = []
         for row in rows:
             result = {
-                "last_name": row[0],
-                "first_name": row[1],
-                "middle_name": row[2],
-                "birth_date": row[3],
-                "position": row[4],
+                "id" : row[0],
+                "last_name": row[1],
+                "first_name": row[2],
+                "middle_name": row[3],
+                "birth_date": row[4],
+                "position": row[5],
                 "risks": []
             }
 
-            if row[5]:
+            if row[6]:
                 risk = {
-                    "risk": row[5],
-                    "planned_date": row[6],
-                    "actual_date": row[7]
+                    "risk": row[6],
+                    "planned_date": row[7],
+                    "actual_date": row[8]
                 }
                 result["risks"].append(risk)
 
@@ -202,11 +230,11 @@ class SearchEmployeeApp(FormElements):
                         search_result["first_name"] == result["first_name"] and
                         search_result["middle_name"] == result["middle_name"]):
                     found = True
-                    if row[5]:
+                    if row[6]:
                         risk = {
-                            "risk": row[5],
-                            "planned_date": row[6],
-                            "actual_date": row[7]
+                            "risk": row[6],
+                            "planned_date": row[7],
+                            "actual_date": row[8]
                         }
                         search_result["risks"].append(risk)
                     break
@@ -214,25 +242,90 @@ class SearchEmployeeApp(FormElements):
             if not found:
                 search_results.append(result)
 
-        return search_results
+        # Сортировка результатов по минимальной дате planned_date
+        sorted_results = sorted(search_results, key=lambda x: min([risk.get("planned_date") for risk in x["risks"]]))
+
+        return sorted_results
 
     def show_results(self, results):
-        print(results)
+        [print(result) for result in results]
+        self.clear_main_frame()
+
+        # text = ScrolledText(self.main_frame, state='disable')
+        # text.pack(fill='both', expand=True)
+        frame = ScrollableFrame(self.main_frame,
+                                width=self.main_frame.winfo_screenwidth() // 2 - 25,
+                                height=self.main_frame.winfo_screenheight() // 2 - 5)
+
+        edit_icon = self.change_icon_size(self.edit_icon)
+        delete_icon = self.change_icon_size(self.delete_icon)
+
+        for row, result in enumerate(results):
+            employee_frame = tk.Frame(frame.scrollable_frame)
+            employee_frame.grid(row=row, column=0, columnspan=3, sticky="w", padx=10, pady=5)
+
+            # Отображение информации о сотруднике (ФИО, дата рождения, должность)
+            employee_info = f"{result['last_name']} {result['first_name']} {result['middle_name']}, " \
+                            f"Дата рождения: {result['birth_date']}, Должность: {result['position']}"
+            tk.Label(employee_frame, text=employee_info).grid(row=row, column=row, sticky="w")
+
+            # Пустой прозрачный элемент для выравнивания
+            tk.Label(employee_frame, text="", width=5).grid(row=row, column=row+1)
+
+            # Кликабельная иконка для редактирования
+            edit_button = tk.Label(employee_frame, image=edit_icon)
+            edit_button.photo = edit_icon
+            edit_button.grid(row=row, column=row+2, padx=5, sticky="e") # column +2, чтобы иконка показывалась в колонке рядом с надписью
+            edit_button.bind("<Button-1>", lambda event, result=result: self.edit_employee(result))
+
+            # Кликабельная иконка для удаления
+            delete_button = tk.Label(employee_frame, image=delete_icon)
+            delete_button.photo = delete_icon
+            delete_button.grid(row=row, column=row+3, padx=5, sticky="e") # column +3, чтобы иконка показывалась в колонке рядом с иконкой редактирования
+            delete_button.bind("<Button-1>", lambda event, result=result: self.delete_employee(result))
+
+        frame.pack()
+
+    # Изменение размера иконки редактирования
+    def change_icon_size(self, icon: str):
+        edit_image = Image.open(icon)
+        edit_image = edit_image.resize((20, 20), Image.LANCZOS)
+        edit_icon = ImageTk.PhotoImage(edit_image)
+        return edit_icon
+
+    def clear_main_frame(self):
+        for widget in self.main_frame.winfo_children():
+            widget_name = widget.winfo_name()
+            if widget_name != "!menu":
+                widget.destroy()
+
+    def edit_employee(self, employee_data):
+        # Здесь можно добавить логику редактирования сотрудника
         pass
-    #     self.clear_main_frame()
-    #
-    #     for result in results:
-    #         employee_frame = tk.Frame(self.main_frame)
-    #         employee_frame.pack(fill="x", padx=10, pady=5)
-    #
-    #         # ... (создание меток и иконок аналогично форме добавления пользователя)
-    #
-    #         tk.Button(employee_frame, image=edit_icon, command=lambda r=result: self.edit_employee(r)).pack(
-    #             side="right")
-    #         tk.Button(employee_frame, image=delete_icon, command=lambda r=result: self.delete_employee(r)).pack(
-    #             side="right")
-    #
-    # def clear_main_frame(self):
-    #     for widget in self.main_frame.winfo_children():
-    #         widget.destroy()
+
+    def delete_employee(self, employee_data):
+        confirmed = messagebox.askokcancel(
+            "Подтверждение удаления",
+            "Данные по сотруднику будут удалены навсегда. Продолжить?",
+            icon="warning"
+        )
+        print("Deleting-----------------------")
+        print(employee_data)
+        employee_id = employee_data["id"]
+        if confirmed:
+            # Удаление сотрудника и связанных рисков из базы данных
+            conn = sqlite3.connect("employee.db")
+            cursor = conn.cursor()
+
+            # Удаление связанных рисков сотрудника
+            cursor.execute("DELETE FROM risk_factor WHERE employee_id=?", (employee_id,))
+
+            # Удаление самого сотрудника
+            cursor.execute("DELETE FROM employee WHERE id=?", (employee_id,))
+
+            conn.commit()
+            conn.close()
+
+            # Обновление отображения результатов
+            self.perform_search()
 
