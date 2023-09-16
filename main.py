@@ -7,6 +7,7 @@ from PIL import Image, ImageTk
 
 from AddEmployeeApp import AddEmployeeApp
 from SearchEmployeeApp import SearchEmployeeApp
+from ShowStartListEmployeeApp import ShowStartListEmployeeApp
 
 
 # class RiskFactor:
@@ -40,6 +41,10 @@ class MainMenu:
         # Создание меню
         menu_bar = tk.Menu(self.root)
 
+        # Создание формы для начального списка юзеров
+        start_users_list = tk.Frame(self.root)
+        ShowStartListEmployeeApp(self.root)
+
         # Добавление пунктов в меню
         file_menu = tk.Menu(menu_bar, tearoff=0)
         file_menu.add_command(label="Добавление пользователя", command=self.open_add_user_window)
@@ -51,6 +56,8 @@ class MainMenu:
 
         self.root.config(menu=menu_bar)
 
+    def show_start_users_list(self):
+        pass
 
     def open_add_user_window(self):
         add_user_window = tk.Toplevel(self.root)
@@ -63,7 +70,6 @@ class MainMenu:
         search_window.title("Поиск")
         search_window.geometry(f"{self.new_width}x{self.new_height}")  # Используем новые размеры
         SearchEmployeeApp(self.root, search_window)
-
 
     def open_update_window(self):
         update_window = tk.Toplevel(root)

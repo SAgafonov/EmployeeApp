@@ -13,3 +13,4 @@ class FormElements:
         self.risk_name_var = tk.StringVar()
         self.planned_date_var = tk.StringVar()
         self.actual_date_var = tk.StringVar()
+

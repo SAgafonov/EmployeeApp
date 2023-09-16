@@ -41,22 +41,23 @@ def show_all_employees():
     conn.close()
 
 
-
-class AddEmployeeApp(FormElements):
-    def __init__(self, add_user_window):
+class EditEmployeeApp(FormElements):
+    def __init__(self, add_user_window, employee_id):
         super().__init__()
-        self.root_add_user_window = add_user_window
-        self.root_add_user_window.title("Добавление пользователя")
+        self.employee_id = employee_id
+
+        self.root_edit_user_window = add_user_window
+        self.root_edit_user_window.title("Редактирование пользователя")
 
         self.risk_entries = []  # Список для хранения текстовых полей для факторов риска
 
-        self.error_label = tk.Label(self.root_add_user_window, text="", fg="red")
+        self.error_label = tk.Label(self.root_edit_user_window, text="", fg="red")
         self.error_label.pack()
 
         self.create_add_user_widgets()
 
     def create_add_user_widgets(self):
-        self.employee_frame = tk.Frame(self.root_add_user_window)
+        self.employee_frame = tk.Frame(self.root_edit_user_window)
         self.employee_frame.pack(side="left", padx=20, pady=20)
 
         # Поля для сотрудника
@@ -81,7 +82,7 @@ class AddEmployeeApp(FormElements):
         self.position_entry.pack(fill="x", anchor="w")
 
         # Рамка для факторов риска и скроллбара
-        self.risk_frame = tk.Frame(self.root_add_user_window)
+        self.risk_frame = tk.Frame(self.root_edit_user_window)
         self.risk_frame.pack(side="right", padx=10, pady=10, fill="both", expand=True)
 
         # Канвас для прокрутки
@@ -103,32 +104,41 @@ class AddEmployeeApp(FormElements):
         # Кнопки "Добавить риск", "Добавить" и "Отменить"
         button_frame = tk.Frame(self.employee_frame)
         button_frame.pack(side="bottom", pady=10)
-        tk.Button(button_frame, text="Добавить риск", command=self.add_risk_entry).pack(side="left", padx=15)
-        tk.Button(button_frame, text="Добавить", command=self.add_employee, bg="green").pack(side="left", padx=5)
+        tk.Button(button_frame, text="Добавить риск", command=self.edit_risk_entry).pack(side="left", padx=15)
+        tk.Button(button_frame, text="Сохранить", command=self.edit_employee, bg="green").pack(side="left", padx=5)
         tk.Button(button_frame, text="Отменить", command=self.cancel, bg="red").pack(side="right", padx=5)
         tk.Button(button_frame, text="Очистить риски", command=self.clear_risks).pack(side="left", padx=20, pady=5)
         tk.Button(button_frame, text="Очистить всё", command=self.clear_all).pack(side="left", padx=20, pady=5)
 
-    def add_risk_entry(self):
+    def edit_risk_entry(self, risk_id=None, risk_name=None, risk_planned_date=None, risk_actual_date=None):
         # Создаем лэйбл для названия поля
         tk.Label(self.risk_entries_frame, text="Фактор риска:").pack()
         # Создаем Entry для поля ввода
         risk_entry = tk.Entry(self.risk_entries_frame)
+        # Если передавалось имя риска, заполняем поле с названием (обычно при редактировании)
+        if risk_name:
+            risk_entry.insert(0, risk_name)
 
         risk_entry.pack()
-        self.risk_entries.append((risk_entry, None, None))  # (Текстовое поле, Planned Date, Actual Date)
+        self.risk_entries.append((risk_id, risk_entry, None, None))  # (Текстовое поле, Planned Date, Actual Date)
 
         tk.Label(self.risk_entries_frame, text="Планируемая дата:").pack()
         planned_date_cal = DateEntry(self.risk_entries_frame, date_pattern="dd.MM.yyyy", textvariable=tk.StringVar())
         planned_date_cal.pack()
-        planned_date_cal.set_date(self.current_date)
-        self.risk_entries[-1] = (risk_entry, planned_date_cal, self.risk_entries[-1][2])
+        if risk_planned_date:
+            planned_date_cal.set_date(risk_planned_date)
+        else:
+            planned_date_cal.set_date(self.current_date)
+        self.risk_entries[-1] = (risk_id, risk_entry, planned_date_cal, self.risk_entries[-1][2])
 
         tk.Label(self.risk_entries_frame, text="Фактическая дата:").pack()
         actual_date_cal = DateEntry(self.risk_entries_frame, date_pattern="dd.MM.yyyy", textvariable=tk.StringVar())
         actual_date_cal.pack()
-        actual_date_cal.set_date(self.current_date)
-        self.risk_entries[-1] = (risk_entry, planned_date_cal, actual_date_cal)
+        if risk_actual_date:
+            actual_date_cal.set_date(risk_actual_date)
+        else:
+            actual_date_cal.set_date(self.current_date)
+        self.risk_entries[-1] = (risk_id, risk_entry, planned_date_cal, actual_date_cal)
 
     def clear_risks(self):
         self.risk_entries_frame.destroy()
@@ -145,7 +155,7 @@ class AddEmployeeApp(FormElements):
         self.position_entry.delete(0, tk.END)
         self.clear_risks()
 
-    def add_employee(self):
+    def edit_employee(self):
         if self.validate_fields():
             last_name = self.last_name_var.get()
             first_name = self.first_name_var.get()
@@ -163,10 +173,10 @@ class AddEmployeeApp(FormElements):
 
             # Сохранение данных сотрудника
             cursor.execute('''
-                            INSERT INTO employee (last_name, first_name, middle_name, birth_date, position)
-                            VALUES (?, ?, ?, ?, ?)
-                        ''', (last_name, first_name, middle_name, birth_date, position))
-            employee_id = cursor.lastrowid
+                            UPDATE employee 
+                            SET last_name = ?, first_name= ?, middle_name= ?, birth_date= ?, position= ?
+                            WHERE id = ?
+                        ''', (last_name, first_name, middle_name, birth_date, position, self.employee_id))
 
             # self.employee = Employee(last_name, first_name, middle_name, birth_date, position)
             # for risk_entry, planned_date_entry, actual_date_entry in self.risk_entries:
@@ -178,30 +188,33 @@ class AddEmployeeApp(FormElements):
 
             # Сохранение факторов риска
             for risk_entry in self.risk_entries:
-                risk_name = risk_entry[0].get()
-                planned_date = risk_entry[1].get()
-                actual_date = risk_entry[2].get()
+                risk_id = risk_entry[0]
+                risk_name = risk_entry[1].get()
+                planned_date = risk_entry[2].get()
+                actual_date = risk_entry[3].get()
 
                 # ToDo Move to a common function
                 # Перевод поля даты в SQLite формат
-                planned_date = datetime.strptime(planned_date, '%d.%m.%Y')
-                planned_date = planned_date.strftime('%Y-%m-%d')
+                try:
+                    planned_date = datetime.strptime(planned_date, '%d.%m.%Y')
+                    planned_date = planned_date.strftime('%Y-%m-%d')
 
-                actual_date = datetime.strptime(actual_date, '%d.%m.%Y')
-                actual_date = actual_date.strftime('%Y-%m-%d')
-
+                    actual_date = datetime.strptime(actual_date, '%d.%m.%Y')
+                    actual_date = actual_date.strftime('%Y-%m-%d')
+                except ValueError:
+                    pass
 
                 if risk_name:
                     cursor.execute('''
-                                    INSERT INTO risk_factor (employee_id, risk_name, planned_date, actual_date)
-                                    VALUES (?, ?, ?, ?)
-                                ''', (employee_id, risk_name, planned_date, actual_date))
+                                    UPDATE risk_factor 
+                                    SET risk_name = ?, planned_date = ?, actual_date = ?
+                                    WHERE id = ?
+                                ''', (risk_name, planned_date, actual_date, risk_id))
 
             conn.commit()
             conn.close()
 
-            messagebox.showinfo("Информация", "Информация о сотруднике и рисках сохранена.", parent=self.root_add_user_window)
-            self.clear_all()
+            messagebox.showinfo("Информация", "Информация о сотруднике и рисках обновлена.", parent=self.root_edit_user_window)
             #### TEST
             # print("ФИО:", self.employee.last_name, self.employee.first_name, self.employee.middle_name)
             # print("Дата рождения:", self.employee.birth_date)
@@ -231,7 +244,7 @@ class AddEmployeeApp(FormElements):
         if not self.risk_entries:
             error_message += f"Заполните хотя бы один риск.\n"
 
-        for risk_entry, planned_date_cal, actual_date_cal in self.risk_entries:
+        for risk_id, risk_entry, planned_date_cal, actual_date_cal in self.risk_entries:
             risk_name = risk_entry.get()
             planned_date = planned_date_cal.get_date()
             actual_date = actual_date_cal.get_date()
@@ -251,11 +264,11 @@ class AddEmployeeApp(FormElements):
         return True
 
     def cancel(self):
-        if messagebox.askyesno("Отмена", "Изменения не будут сохранены. Продолжить?", parent=self.root_add_user_window):
-            self.root_add_user_window.destroy()
+        if messagebox.askyesno("Отмена", "Изменения не будут сохранены. Продолжить?", parent=self.root_edit_user_window):
+            self.root_edit_user_window.destroy()
 
     def show_success_message(self, message: str):
-        success_popup = tk.Toplevel(self.root_add_user_window)
+        success_popup = tk.Toplevel(self.root_edit_user_window)
         success_popup.title("Успех")
         success_popup.geometry("200x100")
         tk.Label(success_popup, text=message).pack(pady=20)

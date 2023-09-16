@@ -44,11 +44,14 @@ def drop_tables():
     cursor = conn.cursor()
     cursor.execute('''
         DROP TABLE employee;
+    ''')
+    cursor.execute('''
         DROP TABLE risk_factor;
     ''')
     conn.commit()
     conn.close()
 
+drop_tables()
 # Создание таблиц в базе данных
 create_employee_table()
 create_risk_factor_table()

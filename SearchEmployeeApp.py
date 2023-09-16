@@ -6,7 +6,8 @@ from tkcalendar import DateEntry
 from FormElements import FormElements
 from PIL import Image, ImageTk
 from ScrollableFrame import ScrollableFrame
-from AddEmployeeApp import AddEmployeeApp
+from datetime import datetime
+from EditEmployeeApp import EditEmployeeApp
 
 def show_all_employees():
     conn = sqlite3.connect("employee.db")
@@ -164,6 +165,18 @@ class SearchEmployeeApp(FormElements):
         actual_date = self.actual_date_var.get()
         risk_factors = [x.strip() for x in self.risk_search_entry.get("1.0", "end-1c").split(",")]
 
+        # ToDo Move to a common function
+        # Перевод поля даты в SQLite формат
+        if birth_date:
+            birth_date = datetime.strptime(birth_date, '%d.%m.%Y')
+            birth_date = birth_date.strftime('%Y-%m-%d')
+        if planned_date:
+            planned_date = datetime.strptime(planned_date, '%d.%m.%Y')
+            planned_date = planned_date.strftime('%Y-%m-%d')
+        if actual_date:
+            actual_date = datetime.strptime(actual_date, '%d.%m.%Y')
+            actual_date = actual_date.strftime('%Y-%m-%d')
+
         # print(last_name, first_name, middle_name, birth_date, position, risk_factors, planned_date, actual_date)
         # print(not any([last_name, first_name, middle_name, birth_date, position, risk_factors, planned_date, actual_date]) or risk_factors == [''])
         if not any([last_name, first_name, middle_name, birth_date, position, planned_date, actual_date]) and risk_factors == ['']:
@@ -175,7 +188,7 @@ class SearchEmployeeApp(FormElements):
 
         self.select_query = '''
                 SELECT e.id, e.last_name, e.first_name, e.middle_name, e.birth_date, e.position, 
-                    r.risk_name, r.planned_date, r.actual_date
+                    r.id, r.risk_name, r.planned_date, r.actual_date
                 FROM employee e
                 LEFT JOIN risk_factor r ON e.id = r.employee_id
                 WHERE (e.last_name LIKE ? OR ? = '') AND
@@ -218,9 +231,10 @@ class SearchEmployeeApp(FormElements):
 
             if row[6]:
                 risk = {
-                    "risk": row[6],
-                    "planned_date": row[7],
-                    "actual_date": row[8]
+                    "risk_id": row[6],
+                    "risk": row[7],
+                    "planned_date": row[8],
+                    "actual_date": row[9]
                 }
                 result["risks"].append(risk)
 
@@ -232,9 +246,10 @@ class SearchEmployeeApp(FormElements):
                     found = True
                     if row[6]:
                         risk = {
-                            "risk": row[6],
-                            "planned_date": row[7],
-                            "actual_date": row[8]
+                            "risk_id": row[6],
+                            "risk": row[7],
+                            "planned_date": row[8],
+                            "actual_date": row[9]
                         }
                         search_result["risks"].append(risk)
                     break
@@ -263,6 +278,11 @@ class SearchEmployeeApp(FormElements):
         for row, result in enumerate(results):
             employee_frame = tk.Frame(frame.scrollable_frame)
             employee_frame.grid(row=row, column=0, columnspan=3, sticky="w", padx=10, pady=5)
+
+            # ToDo Move to a common function
+            # Перевод из SQLite формата в %d.%m.%Y
+            result['birth_date'] = datetime.strptime(result['birth_date'], '%Y-%m-%d')
+            result['birth_date'] = result['birth_date'].strftime('%d.%m.%Y')
 
             # Отображение информации о сотруднике (ФИО, дата рождения, должность)
             employee_info = f"{result['last_name']} {result['first_name']} {result['middle_name']}, " \
@@ -300,8 +320,35 @@ class SearchEmployeeApp(FormElements):
                 widget.destroy()
 
     def edit_employee(self, employee_data):
-        # Здесь можно добавить логику редактирования сотрудника
-        pass
+        # Get employee ID
+        employee_id = employee_data["id"]
+
+        # Создаем новый экземпляр формы "Добавление пользователя"
+        edit_form = tk.Toplevel(self.main_frame)
+        edit_app = EditEmployeeApp(edit_form, employee_id)
+
+        # Заполняем поля данными выбранного сотрудника
+        edit_app.last_name_entry.insert(0, employee_data["last_name"])
+        edit_app.first_name_entry.insert(0, employee_data["first_name"])
+        edit_app.middle_name_entry.insert(0, employee_data["middle_name"])
+        edit_app.birth_date_cal.set_date(employee_data["birth_date"])
+        edit_app.position_entry.insert(0, employee_data["position"])
+
+        # Заполняем риски
+        for risk in employee_data["risks"]:
+            # ToDo Move to a common function
+            # Перевод из SQLite формата в %d.%m.%Y
+            try:
+                risk["planned_date"] = datetime.strptime(risk["planned_date"], '%Y-%m-%d')
+                risk["planned_date"] = risk["planned_date"].strftime('%d.%m.%Y')
+
+                risk["actual_date"] = datetime.strptime(risk["actual_date"], '%Y-%m-%d')
+                risk["actual_date"] = risk["actual_date"].strftime('%d.%m.%Y')
+            except ValueError:
+                pass
+
+            edit_app.edit_risk_entry(risk["risk_id"], risk["risk"], risk["planned_date"], risk["actual_date"])
+
 
     def delete_employee(self, employee_data):
         confirmed = messagebox.askokcancel(
