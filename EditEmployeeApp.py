@@ -112,7 +112,7 @@ class EditEmployeeApp(FormElements):
         tk.Button(button_frame, text="Очистить риски", command=self.clear_risks).pack(side="left", padx=20, pady=5)
         tk.Button(button_frame, text="Очистить всё", command=self.clear_all).pack(side="left", padx=20, pady=5)
 
-    def edit_risk_entry(self, risk_id=None, risk_name=None, risk_planned_date=None, risk_actual_date=None):
+    def edit_risk_entry(self, employee_id=None, risk_id=None, risk_name=None, risk_planned_date=None, risk_actual_date=None):
         risk_frame = tk.Frame(self.risk_entries_frame)
         risk_frame.pack()
         # Создаем лэйбл для названия поля
@@ -124,7 +124,8 @@ class EditEmployeeApp(FormElements):
         delete_icon = self.change_icon_size(self.delete_icon)
         delete_button = tk.Label(risk_frame, image=delete_icon)
         delete_button.photo = delete_icon
-        delete_button.bind("<Button-1>", lambda event, result=risk_id: self.delete_risk(result))
+        # ToDo Сделать, чтобы риск убирался с формы после нажатия на кнопку
+        delete_button.bind("<Button-1>", lambda event, risk=risk_id, employee=employee_id: self.delete_risk(risk, employee))
         delete_button.pack(side="right")
 
         # Если передавалось имя риска, заполняем поле с названием (обычно при редактировании)
@@ -167,6 +168,14 @@ class EditEmployeeApp(FormElements):
         self.position_entry.delete(0, tk.END)
         self.clear_risks()
 
+    def get_employee_info(self, employee_id):
+        """
+        Получить инфу по рискам юзера.
+        :param employee_id:
+        :return:
+        """
+        pass
+
     def edit_employee(self):
         if self.validate_fields():
             last_name = self.last_name_var.get()
@@ -204,6 +213,8 @@ class EditEmployeeApp(FormElements):
                 risk_name = risk_entry[1].get()
                 planned_date = risk_entry[2].get()
                 actual_date = risk_entry[3].get()
+
+                print(risk_name)
 
                 # ToDo Move to a common function
                 # Перевод поля даты в SQLite формат
@@ -291,7 +302,10 @@ class EditEmployeeApp(FormElements):
         tk.Label(success_popup, text=message).pack(pady=20)
         tk.Button(success_popup, text="Закрыть", command=success_popup.destroy).pack()
 
-    def delete_risk(self, risk_id):
+    def delete_risk(self, risk_id, employee_id):
+        # ToDo
+        # ToDo Вызвать get_employee_info(), если рисков 1, то выдавать предупреждение, что у юзера не может быть
+        # ToDo меньше одного риска.
         confirmed = messagebox.askokcancel(
             "Подтверждение удаления",
             "Риск будет удален. Продолжить?",

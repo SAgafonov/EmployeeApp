@@ -374,7 +374,7 @@ class SearchEmployeeApp(FormElements):
             except ValueError:
                 pass
 
-            edit_app.edit_risk_entry(risk["risk_id"], risk["risk"], risk["planned_date"], risk["actual_date"])
+            edit_app.edit_risk_entry(employee_id, risk["risk_id"], risk["risk"], risk["planned_date"], risk["actual_date"])
 
 
     def delete_employee(self, employee_data):

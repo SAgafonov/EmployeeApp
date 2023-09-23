@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
-import sqlite3
+import createDB
 
 from tkcalendar import DateEntry
 from PIL import Image, ImageTk
@@ -81,6 +81,8 @@ class MainMenu:
             self.root.destroy()
 
 if __name__ == "__main__":
+    createDB.create_employee_table()
+    createDB.create_risk_factor_table()
     root = tk.Tk()
     app = MainMenu(root)
     root.mainloop()

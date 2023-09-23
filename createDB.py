@@ -51,7 +51,7 @@ def drop_tables():
     conn.commit()
     conn.close()
 
-drop_tables()
+# drop_tables()
 # Создание таблиц в базе данных
-create_employee_table()
-create_risk_factor_table()
+# create_employee_table()
+# create_risk_factor_table()
