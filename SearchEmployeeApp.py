@@ -137,6 +137,26 @@ class SearchEmployeeApp(FormElements):
         if messagebox.askyesno("Отмена", "Закрыть форму поиска?", parent=self.root_search_window):
             self.root_search_window.destroy()
 
+    def get_employee_data(self, employee_id):
+        conn = sqlite3.connect("employee.db")
+        cursor = conn.cursor()
+
+        # Выбираем только записи, для которых планируемая дата риска сегодня или +7 дней
+        self.select_query = '''
+                        SELECT e.id, e.last_name, e.first_name, e.middle_name, e.birth_date, e.position, r.id, r.risk_name, r.planned_date, r.actual_date
+                        FROM employee AS e
+                        LEFT JOIN risk_factor AS r ON e.id = r.employee_id
+                        WHERE 
+                            e.id = ?;
+                '''
+        search_params = [employee_id]
+        cursor.execute(self.select_query, search_params)
+        rows = cursor.fetchall()
+
+        conn.close()
+        search_results = self.organize_search_results(rows)
+        return search_results[0]
+
     def perform_search(self):
         # Если есть сохраненные параметры для поиска, то пользуемся имя.
         # Нужно для корректной перерисовки результатов поиска после удаления/редактирования пользователя.
@@ -322,6 +342,12 @@ class SearchEmployeeApp(FormElements):
     def edit_employee(self, employee_data):
         # Get employee ID
         employee_id = employee_data["id"]
+        employee_data = self.get_employee_data(employee_id)
+
+        # ToDo Move to a common function
+        # Перевод из SQLite формата в %d.%m.%Y
+        employee_data['birth_date'] = datetime.strptime(employee_data['birth_date'], '%Y-%m-%d')
+        employee_data['birth_date'] = employee_data['birth_date'].strftime('%d.%m.%Y')
 
         # Создаем новый экземпляр формы "Добавление пользователя"
         edit_form = tk.Toplevel(self.main_frame)
@@ -336,6 +362,7 @@ class SearchEmployeeApp(FormElements):
 
         # Заполняем риски
         for risk in employee_data["risks"]:
+            print(risk["risk"])
             # ToDo Move to a common function
             # Перевод из SQLite формата в %d.%m.%Y
             try:

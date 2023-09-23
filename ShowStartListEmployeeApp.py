@@ -64,6 +64,28 @@ class ShowStartListEmployeeApp(FormElements):
 
         self.perform_search()
 
+    def get_employee_data(self, employee_id):
+        conn = sqlite3.connect("employee.db")
+        cursor = conn.cursor()
+
+        # Выбираем только записи, для которых планируемая дата риска сегодня или +7 дней
+        self.select_query = '''
+                        SELECT e.id, e.last_name, e.first_name, e.middle_name, e.birth_date, e.position, r.id, r.risk_name, r.planned_date, r.actual_date
+                        FROM employee AS e
+                        LEFT JOIN risk_factor AS r ON e.id = r.employee_id
+                        WHERE 
+                            e.id = ? AND
+                            (r.planned_date = DATE('now')
+                            OR r.planned_date BETWEEN DATE('now') AND DATE('now', '+7 days'))
+                        ORDER BY r.planned_date ASC;
+                '''
+        search_params = [employee_id]
+        cursor.execute(self.select_query, search_params)
+        rows = cursor.fetchall()
+
+        conn.close()
+        search_results = self.organize_search_results(rows)
+        return search_results[0]
 
     def perform_search(self):
         # Если есть сохраненные параметры для поиска, то пользуемся имя.
@@ -86,10 +108,10 @@ class ShowStartListEmployeeApp(FormElements):
 
         conn = sqlite3.connect("employee.db")
         cursor = conn.cursor()
-
+        
         # Выбираем только записи, для которых планируемая дата риска сегодня или +7 дней
         self.select_query = '''
-                SELECT e.id, e.last_name, e.first_name, e.middle_name, e.birth_date, e.position, r.risk_name, r.planned_date, r.actual_date
+                SELECT e.id, e.last_name, e.first_name, e.middle_name, e.birth_date, e.position, r.id, r.risk_name, r.planned_date, r.actual_date
                 FROM employee AS e
                 LEFT JOIN risk_factor AS r ON e.id = r.employee_id
                 WHERE
@@ -106,8 +128,9 @@ class ShowStartListEmployeeApp(FormElements):
         search_results = self.organize_search_results(rows)
 
         self.show_results(search_results)
+        return search_results
 
-    def organize_search_results(self, rows):
+    def organize_search_results(self, rows) -> list:
         search_results = []
         for row in rows:
             result = {
@@ -122,9 +145,10 @@ class ShowStartListEmployeeApp(FormElements):
 
             if row[6]:
                 risk = {
-                    "risk": row[6],
-                    "planned_date": row[7],
-                    "actual_date": row[8]
+                    "risk_id": row[6],
+                    "risk": row[7],
+                    "planned_date": row[8],
+                    "actual_date": row[9]
                 }
                 result["risks"].append(risk)
 
@@ -136,9 +160,10 @@ class ShowStartListEmployeeApp(FormElements):
                     found = True
                     if row[6]:
                         risk = {
-                            "risk": row[6],
-                            "planned_date": row[7],
-                            "actual_date": row[8]
+                            "risk_id": row[6],
+                            "risk": row[7],
+                            "planned_date": row[8],
+                            "actual_date": row[9]
                         }
                         search_result["risks"].append(risk)
                     break
@@ -211,6 +236,13 @@ class ShowStartListEmployeeApp(FormElements):
     def edit_employee(self, employee_data):
         # Get employee ID
         employee_id = employee_data["id"]
+        employee_data = self.get_employee_data(employee_id)
+        print(employee_data)
+
+        # ToDo Move to a common function
+        # Перевод из SQLite формата в %d.%m.%Y
+        employee_data['birth_date'] = datetime.strptime(employee_data['birth_date'], '%Y-%m-%d')
+        employee_data['birth_date'] = employee_data['birth_date'].strftime('%d.%m.%Y')
 
         # Создаем новый экземпляр формы "Добавление пользователя"
         edit_form = tk.Toplevel(self.main_frame)
@@ -225,6 +257,7 @@ class ShowStartListEmployeeApp(FormElements):
 
         # Заполняем риски
         for risk in employee_data["risks"]:
+            print(risk['risk'])
             # ToDo Move to a common function
             # Перевод из SQLite формата в %d.%m.%Y
             try:
@@ -236,7 +269,7 @@ class ShowStartListEmployeeApp(FormElements):
             except ValueError:
                 pass
 
-            edit_app.edit_risk_entry(risk["risk"], risk["planned_date"], risk["actual_date"])
+            edit_app.edit_risk_entry(risk["risk_id"], risk["risk"], risk["planned_date"], risk["actual_date"])
 
 
     def delete_employee(self, employee_data):

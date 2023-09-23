@@ -3,6 +3,7 @@ from tkinter import messagebox
 import sqlite3
 from tkcalendar import DateEntry
 from datetime import datetime
+from PIL import Image, ImageTk
 from FormElements import FormElements
 
 def show_all_employees():
@@ -48,6 +49,7 @@ class EditEmployeeApp(FormElements):
 
         self.root_edit_user_window = add_user_window
         self.root_edit_user_window.title("Редактирование пользователя")
+        self.delete_icon = "icons/delete_icon.png"
 
         self.risk_entries = []  # Список для хранения текстовых полей для факторов риска
 
@@ -111,10 +113,20 @@ class EditEmployeeApp(FormElements):
         tk.Button(button_frame, text="Очистить всё", command=self.clear_all).pack(side="left", padx=20, pady=5)
 
     def edit_risk_entry(self, risk_id=None, risk_name=None, risk_planned_date=None, risk_actual_date=None):
+        risk_frame = tk.Frame(self.risk_entries_frame)
+        risk_frame.pack()
         # Создаем лэйбл для названия поля
-        tk.Label(self.risk_entries_frame, text="Фактор риска:").pack()
+        tk.Label(risk_frame, text="Фактор риска:").pack()
         # Создаем Entry для поля ввода
-        risk_entry = tk.Entry(self.risk_entries_frame)
+        risk_entry = tk.Entry(risk_frame)
+
+        # Кликабельная иконка для удаления
+        delete_icon = self.change_icon_size(self.delete_icon)
+        delete_button = tk.Label(risk_frame, image=delete_icon)
+        delete_button.photo = delete_icon
+        delete_button.bind("<Button-1>", lambda event, result=risk_id: self.delete_risk(result))
+        delete_button.pack(side="right")
+
         # Если передавалось имя риска, заполняем поле с названием (обычно при редактировании)
         if risk_name:
             risk_entry.insert(0, risk_name)
@@ -204,12 +216,17 @@ class EditEmployeeApp(FormElements):
                 except ValueError:
                     pass
 
-                if risk_name:
+                if risk_id:
                     cursor.execute('''
                                     UPDATE risk_factor 
                                     SET risk_name = ?, planned_date = ?, actual_date = ?
                                     WHERE id = ?
                                 ''', (risk_name, planned_date, actual_date, risk_id))
+                else:
+                    cursor.execute('''
+                                    INSERT INTO risk_factor (employee_id, risk_name, planned_date, actual_date)
+                                    VALUES (?, ?, ?, ?)
+                                ''', (self.employee_id, risk_name, planned_date, actual_date))
 
             conn.commit()
             conn.close()
@@ -273,3 +290,30 @@ class EditEmployeeApp(FormElements):
         success_popup.geometry("200x100")
         tk.Label(success_popup, text=message).pack(pady=20)
         tk.Button(success_popup, text="Закрыть", command=success_popup.destroy).pack()
+
+    def delete_risk(self, risk_id):
+        confirmed = messagebox.askokcancel(
+            "Подтверждение удаления",
+            "Риск будет удален. Продолжить?",
+            icon="warning",
+            parent=self.root_edit_user_window
+        )
+        print("Deleting-----------------------")
+        print(risk_id)
+        if confirmed:
+            # Удаление сотрудника и связанных рисков из базы данных
+            conn = sqlite3.connect("employee.db")
+            cursor = conn.cursor()
+
+            # Удаление связанных рисков сотрудника
+            cursor.execute("DELETE FROM risk_factor WHERE id=?", (risk_id,))
+
+            conn.commit()
+            conn.close()
+
+    # Изменение размера иконки редактирования
+    def change_icon_size(self, icon: str):
+        edit_image = Image.open(icon)
+        edit_image = edit_image.resize((20, 20), Image.LANCZOS)
+        edit_icon = ImageTk.PhotoImage(edit_image)
+        return edit_icon

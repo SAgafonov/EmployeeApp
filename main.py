@@ -49,15 +49,15 @@ class MainMenu:
         file_menu = tk.Menu(menu_bar, tearoff=0)
         file_menu.add_command(label="Добавление пользователя", command=self.open_add_user_window)
         file_menu.add_command(label="Поиск", command=self.open_search_window)
-        file_menu.add_command(label="Обновить", command=self.open_update_window)
+        file_menu.add_command(label="Обновить", command=self.update_start_users_list)
         file_menu.add_separator()
         file_menu.add_command(label="Выход", command=self.exit_app)
         menu_bar.add_cascade(label="Меню", menu=file_menu)
 
         self.root.config(menu=menu_bar)
 
-    def show_start_users_list(self):
-        pass
+    def update_start_users_list(self):
+        ShowStartListEmployeeApp(self.root)
 
     def open_add_user_window(self):
         add_user_window = tk.Toplevel(self.root)
